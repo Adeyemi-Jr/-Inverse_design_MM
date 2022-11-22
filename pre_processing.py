@@ -2,26 +2,42 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
+import os
 
 
-df = pd.read_csv('../data/processed/SZmax_Zmin.csv')
-plot_figure = True
+plot_figure = False
 
-##########################################
-#           DownSample  S- parameter Signals
-##########################################
+#-----------------------------------------------#
+#----------- DownSample datasets ---------------#
+#-----------------------------------------------#
 
-down_sample_factor = 10
-x = np.array(df.columns)
+data_lists = ['1','2']
+s_par_types = ['SZmax_Zmin', 'SZmin_Zmin']
 
-length_df = [*range(df.shape[1])]
 
-Selected_index = length_df[::down_sample_factor]
-#drop_idx = list(range(0,df.shape[1],down_sample_factor))
-new_df_cols = [j for i,j in enumerate(df.columns) if i in Selected_index]
 
-new_df = df[new_df_cols]
-new_x = np.array(new_df.columns)
+for data_list in data_lists:
+
+    for s_par_type in s_par_types:
+
+        df = pd.read_csv('../data/processed/'+s_par_type+'_dataset_'+ data_list +'.csv')
+        ##########################################
+        #           DownSample  S- parameter Signals
+        ##########################################
+
+        down_sample_factor = 10
+        x = np.array(df.columns)
+
+        length_df = [*range(df.shape[1])]
+
+        Selected_index = length_df[::down_sample_factor]
+        #drop_idx = list(range(0,df.shape[1],down_sample_factor))
+        new_df_cols = [j for i,j in enumerate(df.columns) if i in Selected_index]
+
+        new_df = df[new_df_cols]
+        new_x = np.array(new_df.columns)
+        new_df.columns = [  s_par_type+'_'+ col for col in new_df.columns]
+        new_df.to_csv('../data/processed/'+ s_par_type +'_dataset_'+ data_list +'_downsampled.csv',index= False)
 
 
 
@@ -29,18 +45,6 @@ new_x = np.array(new_df.columns)
 ##########################################
 #     Import Design Parameters
 ##########################################
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 if plot_figure==True:
@@ -62,6 +66,46 @@ if plot_figure==True:
 
         #axes[i].set_title(i)
     plt.show()
+
+
+
+
+
+##########################################
+#     Join Design Par and response
+##########################################
+
+df_tmp = []
+for data_list in data_lists:
+    directory = '../data/raw/Data_'+data_list+'/Results'
+
+    sub_dir_list = [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name))]
+    sub_dir_list = [x.replace('iteration_', '') for x in sub_dir_list]
+    sub_dir_values = [int(x)-1 for x in sub_dir_list]
+    sub_dir_values.sort()
+
+    par_dir = '../data/raw/Data_'+data_list+'/parameter_space_'+data_list+'.csv'
+    par_df = pd.read_csv(par_dir,index_col=[0])
+    par_df.reset_index(inplace = True)
+
+
+    df_SZmax_Zmin= pd.read_csv('../data/processed/'+s_par_types[0]+'_dataset_'+ data_list +'_downsampled.csv')
+    df_SZmin_Zmin= pd.read_csv('../data/processed/'+s_par_types[1]+'_dataset_'+ data_list +'_downsampled.csv')
+
+    #join df along column
+    par_df_s_par_df = pd.concat([par_df, df_SZmax_Zmin,df_SZmin_Zmin],axis = 1)
+
+
+    #select only the parameter setting that worked
+    df_concated = par_df_s_par_df[par_df_s_par_df.index.isin(sub_dir_values)]
+
+    df_tmp.append(df_concated)
+
+
+final_df = pd.concat(df_tmp,axis=0)
+final_df.to_csv('../data/processed/data.csv')
+
+
 
 
 
