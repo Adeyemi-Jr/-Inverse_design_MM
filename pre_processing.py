@@ -36,6 +36,14 @@ for data_list in data_lists:
 
         new_df = df[new_df_cols]
         new_x = np.array(new_df.columns)
+
+        '''
+        df_col = new_df.columns
+        with open('your_file.txt', 'w') as f:
+            for line in df_col:
+                f.write("'"+line+"',")
+        '''
+
         new_df.columns = [  s_par_type+'_'+ col for col in new_df.columns]
         new_df.to_csv('../data/processed/'+ s_par_type +'_dataset_'+ data_list +'_downsampled.csv',index= False)
 
